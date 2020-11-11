@@ -1,2 +1,2 @@
 # mobius_solitaire_cheater
-Cheats at zachtronics Mobiux Front Solitaire game
+Cheats at zachtronics Mobius Front Solitaire game
