@@ -155,12 +155,14 @@ def playbrute(board, stack):
 #   pytesseract.image_to_string(path, config='--psm 10')
 import ctypes
 import PIL.ImageGrab
+import PIL.Image
 import pytesseract
+import string
 
 user32 = ctypes.windll.LoadLibrary("user32.dll")
 tmppath = "./tmp.png"
 
-def getBoard():
+def getboard():
     callback = ctypes.CFUNCTYPE(ctypes.c_bool, ctypes.c_ulonglong, ctypes.c_ulonglong)
     buf = (ctypes.c_byte * 0x400)()
 
@@ -195,28 +197,49 @@ def getBoard():
     screenshot = PIL.ImageGrab.grab(pos)
     w,h = screenshot.size
 
-    xs = int(w * 0.015)
+    xs = int(w * 0.011)
     ys = int(h * 0.024)
 
-    left = int(w*0.432)
-    xstep = w * 0.144
+    left = int(w*0.439)
+    xstep = w * 0.142
     top = int(h*0.1)
     ystep = h * 0.049
 
+    okay = string.ascii_letters + string.digits
+    board = []
     for xi in range(4):
+        board.append([])
         for yi in range(13):
             w,h = screenshot.size
             x = left + int(xstep * xi)
             y = top + int(ystep * yi)
             s = screenshot.crop((x-xs, y-ys, x+xs, y+ys))
-            s.save(tmppath)
-            s.show()
-            input("->")
-            print(pytesseract.image_to_string(tmppath, config='--psm 10'))
+            
+            s = s.getchannel("G")
 
-    #TODO here the OCR is choking on the card edges. I want to try extracting the red channel
-    # and adjust the sizes, see if we can get it closer on target without edges showing up
+            s.save(tmppath)
+            #input("->")
+            #s.show()
+            c = pytesseract.image_to_string(tmppath, config='--psm 10')
+            c = ''.join([x for x in c if x in okay])
+            c = c.lower()
+
+            #print(c)
+            board[xi].append(c)
     
+    #TODO translate failures and sanity check every card is there
+    # try to translate common failures
+    # if it has a 0, it is probably 10
+    # if it is i, it is probably 7?
+    for i in range(13):
+        line = ""
+        for xi in range(4):
+            line += board[xi][i]
+            l = len(board[xi][i])
+            if l <= 3:
+                line += " " * (3 - l)
+        print(line)
+
     return None
 
 
