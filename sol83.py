@@ -347,23 +347,28 @@ def getboard_clrmd():
 import win32api
 import win32con
 import time
-def clickat(xp, yp):
-    print(f"Want to click at {xp},{yp}")
+def clickat(xp, yp, sleepamt=0.5):
     win32api.SetCursorPos((xp, yp))
     win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, xp, yp)
-    time.sleep(0.1)
     win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, xp, yp)
-    time.sleep(0.5)
+    time.sleep(sleepamt)
 
 def clicknextstack(rect):
     raise NotImplementedError("Need to find button, it moves")
+    # could just click a bunch in the whole column?
+    # could track last card we sent to stack, and go to it's location?
     w = rect[2] - rect[0]
     h = rect[3] - rect[1]
-    clickat(rect[0] + int(w *0.317), rect[1] + int(h * 0.74))
+    x = int(w * 0.317)
+    y = int(h * 0.74)
+    clickat(rect[0] + x, rect[1] + y)
 
-def playstack(positions, rect):
-    for x,y in positions:
+def playstack(stack, rect):
+    for c in stack:
+        x, y = c[3]
         xp, yp = getcardpos(rect, x, y)
+        print(f"DEBUG: going to try to click {c[0]} at {x},{y} ({xp},{yp})")
+        input("DEBUG: hit Enter to do it")
         clickat(xp, yp)
 
 def playone():
