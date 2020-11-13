@@ -162,7 +162,7 @@ import string
 user32 = ctypes.windll.LoadLibrary("user32.dll")
 tmppath = "./tmp.png"
 
-def getboard_fromscreen():
+def getprogrec():
     callback = ctypes.CFUNCTYPE(ctypes.c_bool, ctypes.c_ulonglong, ctypes.c_ulonglong)
     buf = (ctypes.c_byte * 0x400)()
 
@@ -190,6 +190,12 @@ def getboard_fromscreen():
         return None
     if min(pos) < 0:
         print("Target is offscreen")
+        return None
+    return pos
+
+def getboard_fromscreen():
+    pos = getprogrec()
+    if pos is None:
         return None
     print(pos)
 
@@ -311,19 +317,43 @@ def getboard_fromscreen():
             realboard[xi].append(getcard(board[xi][yi]))
     return realboard
 
+import subprocess
+dumpcardspath = "./dumpcards/bin/Release/netcoreapp3.1/dumpcards.exe"
 def getboard_clrmd():
-    #TODO
-    # use pythonnet to interact with c# program using clrmd to get card state?
-    raise NotImplementedError("TODO: Way more reliable than screenshot method")
+    p = subprocess.run([dumpcardspath], capture_output=True, encoding="ascii")
+    if len(p.stdout) == 0:
+        print("Error getting cards: \n" + p.stderr)
+        return None
+    b = []
+    for x in range(4):
+        b.append([])
+        for y in range(13):
+            b[x].append(None)
 
-def playstack():
+    for l in p.stdout.strip().split('\n'):
+        ll = l.split()
+        print(ll)
+        c = cards[int(ll[0]) - 1]
+        card = getcard(c)
+        x = int(ll[1])
+        y = int(ll[2])
+        b[x][y] = card
+
+    for x in range(4):
+        for y in range(13):
+            if b[x][y] is None:
+                print("Didn't get all the cards")
+                return None
+    return b
+
+def playstack(positions):
     #TODO
     raise NotImplementedError("TODO")
     # use sendInput to send clicks
     # need to be admin for these to go through
 
 def playone():
-    board = getboard_fromscreen()
+    board = getboard_clrmd()
     if board is None:
         print("Failed while getting board")
         return False
@@ -331,7 +361,7 @@ def playone():
     printstate(board, stack)
 
     while True:
-        score, winstack, nextboard = bruteforce(board, stack)
+        _, winstack, nextboard = bruteforce(board, stack)
         printstate(nextboard, winstack)
         playstack([x[3] for x in winstack])
         if nextboard == board:

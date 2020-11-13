@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Collections.Generic;
 using Microsoft.Diagnostics.Runtime;
 using System.Runtime.InteropServices;
 
@@ -12,11 +13,10 @@ namespace dumpcards
 
         static void Main(string[] args)
         {
-            int processId = -1;
             Process[] parr = Process.GetProcessesByName("Möbius Front '83");
             if (parr.Length != 1)
             {
-                Console.WriteLine("Unable to find unique game process");
+                Console.Error.WriteLine("Unable to find unique game process");
                 Environment.Exit(-1);
             }
             IntPtr ph = parr[0].Handle;
@@ -24,13 +24,16 @@ namespace dumpcards
         
             foreach (ClrInfo clr in targ.ClrVersions)
             {
-                Console.WriteLine("Found CLR version: " + clr.Version);
+                Console.Error.WriteLine("Found CLR version: " + clr.Version);
 
                 using ClrRuntime runtime = clr.CreateRuntime();
                 ClrHeap heap = runtime.Heap;
 
-                int scount = 0;
-                Console.WriteLine("{0,16} {1,16} {2,8} {3}", "Object", "MethodTable", "Size", "Type");
+                var yset = new SortedSet<uint>();
+                var xset = new SortedSet<uint>();
+                var cardList = new List<(uint, uint, uint)>();
+
+                Console.Error.WriteLine("{0,16} {1,16} {2,8} {3}", "Object", "MethodTable", "Size", "Type");
                 foreach (ClrObject obj in heap.EnumerateObjects())
                 {
                     if (obj.IsFree)
@@ -42,7 +45,6 @@ namespace dumpcards
                     {
                         continue;
                     }
-                    scount += 1;
 
                     /*
                      * Awesome, the SolitaireItems are part of a null terminated doubly linked list, with 4 of the Items not being cards, but being the stacks themselves at the "top"
@@ -54,7 +56,7 @@ namespace dumpcards
                      * DownLink = +0x40
                      */
 
-                    //Console.WriteLine($"{obj.Address:x16} {obj.Type.MethodTable:x16} {obj.Size,8:D} {obj.Type.Name}");
+                    //Console.Error.WriteLine($"{obj.Address:x16} {obj.Type.MethodTable:x16} {obj.Size,8:D} {obj.Type.Name}");
                     IntPtr numbytes = (IntPtr)0;
                     ulong sz = obj.Size;
                     if (sz > 0x400)
@@ -67,26 +69,71 @@ namespace dumpcards
                     uint card = BitConverter.ToUInt32(buf, 0x10);
                     uint somex = BitConverter.ToUInt32(buf, 0x28);
                     uint somey = BitConverter.ToUInt32(buf, 0x2c);
-                    Console.WriteLine($"{card}[{suit}] @ {somex:x4},{somey:x4}");
+
+                    if (card != 0)
+                    {
+                        yset.Add(somey);
+                        xset.Add(somex);
+                        cardList.Add((card, somex, somey));
+                    }
+
+                    Console.Error.WriteLine($"{card}[{suit}] @ {somex:x4},{somey:x4}");
+                    //TODO save off items and use X/Y to know where they are and report that
 
                     // Dump bytes
                     /*
                     for (ulong i = 0; i < sz; i++)
                     {
-                        Console.Write("{0:x2} ", buf[i]);
+                        Console.Error.Write("{0:x2} ", buf[i]);
                         if (0 == ((i+1) % 16))
                         {
-                            Console.WriteLine();
+                            Console.Error.WriteLine();
                         }
                         else if (0 == ((i+1) % 8))
                         {
-                            Console.Write(" ");
+                            Console.Error.Write(" ");
                         }
                     }
-                    Console.WriteLine();
+                    Console.Error.WriteLine();
                     */
                 }
-                Console.WriteLine("Saw {0} items", scount);
+                if (xset.Count != 4 || yset.Count != 13)
+                {
+                    Console.Error.WriteLine("Not in Beginning of solitaire game, {0} x positions and {1} y positions", xset.Count, yset.Count);
+                    return;
+                }
+
+                if (cardList.Count != 52)
+                {
+                    Console.Error.WriteLine("Got {0} cards", cardList.Count);
+                    return;
+                }
+
+                foreach (var c in cardList)
+                {
+                    uint xi = 0;
+                    uint yi = 0;
+
+                    foreach (var xp in xset)
+                    {
+                        if (xp == c.Item2)
+                        {
+                            break;
+                        }
+                        xi++;
+                    }
+
+                    foreach (var yp in yset)
+                    {
+                        if (yp == c.Item3)
+                        {
+                            break;
+                        }
+                        yi++;
+                    }
+
+                    Console.WriteLine($"{c.Item1} {xi} {12 - yi}");
+                }
             }
             return;
         }
