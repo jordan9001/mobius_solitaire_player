@@ -313,6 +313,7 @@ def getboard_fromscreen():
 
 def getboard_clrmd():
     #TODO
+    # use pythonnet to interact with c# program using clrmd to get card state?
     raise NotImplementedError("TODO: Way more reliable than screenshot method")
 
 def playstack():
