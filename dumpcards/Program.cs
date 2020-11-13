@@ -33,7 +33,6 @@ namespace dumpcards
                 var xset = new SortedSet<uint>();
                 var cardList = new List<(uint, uint, uint)>();
 
-                Console.Error.WriteLine("{0,16} {1,16} {2,8} {3}", "Object", "MethodTable", "Size", "Type");
                 foreach (ClrObject obj in heap.EnumerateObjects())
                 {
                     if (obj.IsFree)
@@ -55,8 +54,8 @@ namespace dumpcards
                      * UpLink = +0x30
                      * DownLink = +0x40
                      */
+                    //TODO detect which cards are in play, and which are left over from previous game but not gc'd yet?
 
-                    //Console.Error.WriteLine($"{obj.Address:x16} {obj.Type.MethodTable:x16} {obj.Size,8:D} {obj.Type.Name}");
                     IntPtr numbytes = (IntPtr)0;
                     ulong sz = obj.Size;
                     if (sz > 0x400)
@@ -77,35 +76,36 @@ namespace dumpcards
                         cardList.Add((card, somex, somey));
                     }
 
-                    Console.Error.WriteLine($"{card}[{suit}] @ {somex:x4},{somey:x4}");
-                    //TODO save off items and use X/Y to know where they are and report that
-
-                    // Dump bytes
-                    /*
-                    for (ulong i = 0; i < sz; i++)
+                    // Dump bytes of aces to try and figure out diff between used cards and unused
+                    if (card == 1)
                     {
-                        Console.Error.Write("{0:x2} ", buf[i]);
-                        if (0 == ((i+1) % 16))
+                        Console.Error.WriteLine($"{card}[{suit}] @ {somex:x4},{somey:x4}");
+                        for (ulong i = 0; i < sz; i++)
                         {
-                            Console.Error.WriteLine();
+                            Console.Error.Write("{0:x2} ", buf[i]);
+                            if (0 == ((i + 1) % 16))
+                            {
+                                Console.Error.WriteLine();
+                            }
+                            else if (0 == ((i + 1) % 8))
+                            {
+                                Console.Error.Write(" ");
+                            }
                         }
-                        else if (0 == ((i+1) % 8))
-                        {
-                            Console.Error.Write(" ");
-                        }
+                        Console.Error.WriteLine();
                     }
-                    Console.Error.WriteLine();
-                    */
-                }
-                if (xset.Count != 4 || yset.Count != 13)
-                {
-                    Console.Error.WriteLine("Not in Beginning of solitaire game, {0} x positions and {1} y positions", xset.Count, yset.Count);
-                    return;
+
                 }
 
                 if (cardList.Count != 52)
                 {
                     Console.Error.WriteLine("Got {0} cards", cardList.Count);
+                    return;
+                }
+
+                if (xset.Count != 4 || yset.Count != 13)
+                {
+                    Console.Error.WriteLine("Not in Beginning of solitaire game, {0} x positions and {1} y positions", xset.Count, yset.Count);
                     return;
                 }
 

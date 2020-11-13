@@ -143,16 +143,6 @@ def playbrute(board, stack):
         stack = []
 
 
-#TODO
-# to set cursor:
-#   mouse_event(win32con.MOUSEEVENTF_MOVE | win32con.MOUSEEVENTF_ABSOLUTE, x, y)
-#   OR SetCursorPos((x,y)) # not the same x,y as above
-# to click
-#   mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, x, y)
-#   mouse_event(win32con.MOUSEEVENTF_LEFTUP, x, y)
-# to get board
-#   PIL.ImageGrab.grab
-#   pytesseract.image_to_string(path, config='--psm 10')
 import ctypes
 import PIL.ImageGrab
 import PIL.Image
@@ -193,6 +183,20 @@ def getprogrec():
         return None
     return pos
 
+def getcardpos(rect, x, y):
+    l, t, r, b = rect
+    w = r-l
+    h = b-t
+    left = int(w*0.439)
+    xstep = w * 0.142
+    top = int(h*0.1)
+    ystep = h * 0.049
+
+    xp = l + left + int(xstep * x)
+    yp = t + top + int(ystep * y)
+
+    return (xp, yp)
+
 def getboard_fromscreen():
     pos = getprogrec()
     if pos is None:
@@ -206,19 +210,13 @@ def getboard_fromscreen():
     xs = int(w * 0.011)
     ys = int(h * 0.024)
 
-    left = int(w*0.439)
-    xstep = w * 0.142
-    top = int(h*0.1)
-    ystep = h * 0.049
-
     okay = string.ascii_letters + string.digits
     board = []
     for xi in range(4):
         board.append([])
         for yi in range(13):
             w,h = screenshot.size
-            x = left + int(xstep * xi)
-            y = top + int(ystep * yi)
+            x,y = getcardpos((0, 0, w, h), xi, yi)
             s = screenshot.crop((x-xs, y-ys, x+xs, y+ys))
             
             s = s.getchannel("G")
@@ -346,13 +344,32 @@ def getboard_clrmd():
                 return None
     return b
 
-def playstack(positions):
-    #TODO
-    raise NotImplementedError("TODO")
-    # use sendInput to send clicks
-    # need to be admin for these to go through
+import win32api
+import win32con
+import time
+def clickat(xp, yp):
+    print(f"Want to click at {xp},{yp}")
+    win32api.SetCursorPos((xp, yp))
+    win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, xp, yp)
+    time.sleep(0.1)
+    win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, xp, yp)
+    time.sleep(0.5)
+
+def clicknextstack(rect):
+    raise NotImplementedError("Need to find button, it moves")
+    w = rect[2] - rect[0]
+    h = rect[3] - rect[1]
+    clickat(rect[0] + int(w *0.317), rect[1] + int(h * 0.74))
+
+def playstack(positions, rect):
+    for x,y in positions:
+        xp, yp = getcardpos(rect, x, y)
+        clickat(xp, yp)
 
 def playone():
+    rect = getprogrec()
+    #focus window
+    clickat(rect[0] + 6, rect[1] + 6)
     board = getboard_clrmd()
     if board is None:
         print("Failed while getting board")
@@ -363,7 +380,8 @@ def playone():
     while True:
         _, winstack, nextboard = bruteforce(board, stack)
         printstate(nextboard, winstack)
-        playstack([x[3] for x in winstack])
+        playstack([x[3] for x in winstack], rect)
+        clicknextstack(rect)
         if nextboard == board:
             break
         board = nextboard
