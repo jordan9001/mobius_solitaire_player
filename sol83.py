@@ -368,6 +368,9 @@ def playstack(positions, rect):
 
 def playone():
     rect = getprogrec()
+    if rect is None:
+        print("Failed to get program bounds")
+        return False
     #focus window
     clickat(rect[0] + 6, rect[1] + 6)
     board = getboard_clrmd()
