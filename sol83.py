@@ -105,7 +105,7 @@ def bruteforce(board, stack=[]):
 
 def printstate(board, stack):
     i = 0
-    print("---+-" + "--" * len(board))
+    print("---------+-" + "--" * len(board))
     while True:
         printed = False
         s = " "
@@ -114,7 +114,7 @@ def printstate(board, stack):
         if i < len(stack):
             s = stack[i][0]
             x = str(stack[i][3][0])
-            x = str(stack[i][3][1]).zfill(2)
+            y = str(stack[i][3][1]).zfill(2)
             
             printed = True
         for bi in range(len(board)):
@@ -122,13 +122,13 @@ def printstate(board, stack):
                 b[bi] = board[bi][i][0]
                 printed = True
         
-        print(f" {s} {x},{y} | " + " ".join(b))
+        print(f"{s} @ {x} {y} | " + " ".join(b))
 
         if not printed:
             break
 
         i += 1
-    print("---+-" + "--" * len(board))
+    print("---------+-" + "--" * len(board))
 
 def playbrute(board, stack):
     printstate(board, stack)
@@ -162,7 +162,7 @@ import string
 user32 = ctypes.windll.LoadLibrary("user32.dll")
 tmppath = "./tmp.png"
 
-def getboard():
+def getboard_fromscreen():
     callback = ctypes.CFUNCTYPE(ctypes.c_bool, ctypes.c_ulonglong, ctypes.c_ulonglong)
     buf = (ctypes.c_byte * 0x400)()
 
@@ -227,20 +227,120 @@ def getboard():
             #print(c)
             board[xi].append(c)
     
-    #TODO translate failures and sanity check every card is there
+    # translate failures and sanity check every card is there
     # try to translate common failures
     # if it has a 0, it is probably 10
     # if it is i, it is probably 7?
-    for i in range(13):
-        line = ""
-        for xi in range(4):
-            line += board[xi][i]
-            l = len(board[xi][i])
-            if l <= 3:
-                line += " " * (3 - l)
-        print(line)
+    missing = cards * 4
+    fixed = []
+    for xi in range(len(board)):
+        for yi in range(len(board[xi])):
+            c = board[xi][yi].upper()
+            if len(c) > 1:
+                if "10" in c:
+                    c = "X"
+                elif c.startswith("1") and c[1] in cards:
+                    c = c[1]
+                    fixed.append((xi,yi))
+                else:
+                    c = c[0]
+                    fixed.append((xi,yi))
+            else:
+                if c == "1" or c == "i":
+                    print(f"{c} @ {xi} {yi} is 7?")
+                    c = "7"
+                    fixed.append((xi,yi))
+                if c == "0":
+                    c = "Q"
+            
+            board[xi][yi] = c
 
-    return None
+            i = missing.find(c)
+            if i == -1:
+                # uh oh
+                print(f"Too many {c}")
+            else:
+                missing = missing[:i] + missing[i+1:]
 
+    boarderr = False
 
-#TODO use sendInput as admin to actually play the game
+    if len(set(missing)) > 1 or len(fixed) < len(missing):
+        print(f"Too many missing cards: {missing}. Saw as:")
+        boarderr = True
+    elif len(fixed) == len(missing):
+        for x,y in fixed:
+            if board[x][y] != missing[0]:
+                print(f"Misguessed {board[x][y]}? Resetting as {missing[0]}")
+                board[x][y] = missing[0]
+    elif len(missing) > 0:
+        print(f"Too many missing cards: {missing}")
+        boarderr = True
+
+    if not boarderr:
+        missing = cards * 4
+        for xi in range(len(board)):
+            for yi in range(len(board[xi])):
+                c = board[xi][yi].upper()
+
+                i = missing.find(c)
+                if i == -1:
+                    # uh oh
+                    print(f"On check found too many {c}")
+                    boarderr = True
+                    break
+                else:
+                    missing = missing[:i] + missing[i+1:]
+
+        if len(missing) > 0:
+            print(f"Missing on check {missing}")
+            boarderr = True
+
+    if boarderr:
+        print("Got error for board seen as:")
+        for yi in range(len(board[0])):
+            out = ""
+            for xi in range(len(board)):
+                out += board[xi][yi] + " "
+            print(out)
+        return None
+
+    realboard = []
+    for xi in range(len(board)):
+        realboard.append([])
+        for yi in range(len(board[xi])):
+            realboard[xi].append(getcard(board[xi][yi]))
+    return realboard
+
+def getboard_clrmd():
+    #TODO
+    raise NotImplementedError("TODO: Way more reliable than screenshot method")
+
+def playstack():
+    #TODO
+    raise NotImplementedError("TODO")
+    # use sendInput to send clicks
+    # need to be admin for these to go through
+
+def playone():
+    board = getboard_fromscreen()
+    if board is None:
+        print("Failed while getting board")
+        return False
+    stack = []
+    printstate(board, stack)
+
+    while True:
+        score, winstack, nextboard = bruteforce(board, stack)
+        printstate(nextboard, winstack)
+        playstack([x[3] for x in winstack])
+        if nextboard == board:
+            break
+        board = nextboard
+        stack = []
+    return True
+
+def main():
+    playone()
+
+if __name__ == "__main__":
+    main()
