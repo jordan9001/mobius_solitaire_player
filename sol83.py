@@ -80,6 +80,56 @@ def score(stack):
 
     return score
 
+
+maxdepth = 0
+def bruteforce2(board, stack=[], scoresofar=0, stacksleft=1, depth=0):
+    global maxdepth
+    if depth == 0:
+        maxdepth = 0
+    elif depth > maxdepth:
+        maxdepth = depth
+        print("DEBUG: At depth", depth)
+
+    # stop it from going too far
+    if depth > 15:
+        return (score(stack) + scoresofar, stack, board)
+
+    # just brute force for 1 stack maximum score
+    total = sum([c[1] for c in stack])
+
+    pulled = 0
+    wins = -1
+    winstack = []
+    winboard = None
+    for i in range(4):
+        if len(board[i]) > 0 and (board[i][-1][1] + total) <= 31:
+            newboard = []
+            for ii in range(4):
+                if ii == i:
+                    newboard.append(board[ii][:-1])
+                else:
+                    newboard.append(board[ii][:])
+            newstack = stack[:]
+            card = board[i][-1]
+            card = (card[0], card[1], card[2], (i,len(board[i])-1))
+            newstack.append(card)
+            s, trystack, tryboard = bruteforce2(newboard, newstack, scoresofar, stacksleft, depth+1)
+            if s > wins or (s == wins and len(board[pulled]) < len(board[i])):
+                winstack = trystack
+                wins = s
+                pulled = i
+                winboard = tryboard
+    if wins == -1:
+        # end of a stack
+        stackscore = score(stack)
+        if stacksleft == 0:
+            return (stackscore + scoresofar, stack, board)
+        else:
+            s, _, _ = bruteforce2(board, [], scoresofar + stackscore, stacksleft - 1, depth+1)
+            return s, stack, board
+    else:
+        return (wins + scoresofar, winstack, winboard)
+
 def bruteforce(board, stack=[]):
     # just brute force for 1 stack maximum score
     total = sum([c[1] for c in stack])
@@ -366,6 +416,16 @@ def clicknextstack(rect):
     for i in range(n):
         clickat(rect[0] + x, rect[1] + int(h * (start + (step * i))), 0.01, 0.01)
 
+def clicknextgame(rect):
+    w = rect[2] - rect[0]
+    h = rect[3] - rect[1]
+    x = int(w * 0.69)
+    n = 3
+    start = 0.69
+    end = 0.81
+    step = (end - start) / n
+    for i in range(n):
+        clickat(rect[0] + x, rect[1] + int(h * (start + (step * i))), 0.01, 0.01)
 
 def playstack(stack, rect):
     #focus window
@@ -389,7 +449,10 @@ def playone():
     printstate(board, stack)
 
     while True:
-        _, winstack, nextboard = bruteforce(board, stack)
+        print("DEBUG starting solve")
+        _, winstack, nextboard = bruteforce2(board, stack, scoresofar=0, stacksleft=1)
+        #_, winstack, nextboard = bruteforce(board, stack)
+        print("DEBUG decided on moves")
         if nextboard == board:
             break
         printstate(nextboard, winstack)
@@ -397,6 +460,15 @@ def playone():
         clicknextstack(rect)
         board = nextboard
         stack = []
+    return True
+
+def playx(x = 5):
+    rect = getprogrec()
+    for i in range(x):
+        if not playone():
+            return False
+        else:
+            clicknextgame(rect)
     return True
 
 def main():
