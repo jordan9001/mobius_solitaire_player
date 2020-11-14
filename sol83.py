@@ -1,4 +1,12 @@
+import ctypes
+import string
+import subprocess
+import win32api
+import win32con
+import time
 import random
+
+user32 = ctypes.windll.LoadLibrary("user32.dll")
 
 cards = "A23456789XJQK"
 vals = list(range(1,11)) + [10,10,10]
@@ -143,15 +151,6 @@ def playbrute(board, stack):
         stack = []
 
 
-import ctypes
-import PIL.ImageGrab
-import PIL.Image
-import pytesseract
-import string
-
-user32 = ctypes.windll.LoadLibrary("user32.dll")
-tmppath = "./tmp.png"
-
 def getprogrec():
     callback = ctypes.CFUNCTYPE(ctypes.c_bool, ctypes.c_ulonglong, ctypes.c_ulonglong)
     buf = (ctypes.c_byte * 0x400)()
@@ -197,6 +196,12 @@ def getcardpos(rect, x, y):
 
     return (xp, yp)
 
+import PIL.ImageGrab
+import PIL.Image
+import pytesseract
+tmppath = "./tmp.png"
+# This is less reliable than the memory method
+# but still fun
 def getboard_fromscreen():
     pos = getprogrec()
     if pos is None:
@@ -222,8 +227,6 @@ def getboard_fromscreen():
             s = s.getchannel("G")
 
             s.save(tmppath)
-            #input("->")
-            #s.show()
             c = pytesseract.image_to_string(tmppath, config='--psm 10')
             c = ''.join([x for x in c if x in okay])
             c = c.lower()
@@ -315,7 +318,6 @@ def getboard_fromscreen():
             realboard[xi].append(getcard(board[xi][yi]))
     return realboard
 
-import subprocess
 dumpcardspath = "./dumpcards/bin/Release/netcoreapp3.1/dumpcards.exe"
 def getboard_clrmd():
     p = subprocess.run([dumpcardspath], capture_output=True, encoding="ascii")
@@ -343,9 +345,6 @@ def getboard_clrmd():
                 return None
     return b
 
-import win32api
-import win32con
-import time
 def clickat(xp, yp, sleepamt=0.5, midsleep=0.03):
     win32api.SetCursorPos((xp, yp))
     time.sleep(midsleep)
@@ -369,6 +368,7 @@ def clicknextstack(rect):
 
 
 def playstack(stack, rect):
+    #focus window
     clickat(rect[0] + 6, rect[1] + 6)
     for c in stack:
         x, y = c[3]
@@ -381,7 +381,6 @@ def playone():
     if rect is None:
         print("Failed to get program bounds")
         return False
-    #focus window
     board = getboard_clrmd()
     if board is None:
         print("Failed while getting board")

@@ -110,6 +110,7 @@ namespace dumpcards
                     return;
                 }
 
+                // TODO be able to read midgame state
                 if (xset.Count != 4 || yset.Count != 13)
                 {
                     Console.Error.WriteLine("Not in Beginning of solitaire game, {0} x positions and {1} y positions", xset.Count, yset.Count);
