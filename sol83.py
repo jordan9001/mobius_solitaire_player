@@ -91,7 +91,7 @@ def bruteforce2(board, stack=[], scoresofar=0, stacksleft=1, depth=0):
         print("DEBUG: At depth", depth)
 
     # stop it from going too far
-    if depth > 15:
+    if depth >= 14:
         return (score(stack) + scoresofar, stack, board)
 
     # just brute force for 1 stack maximum score
@@ -128,6 +128,7 @@ def bruteforce2(board, stack=[], scoresofar=0, stacksleft=1, depth=0):
             s, _, _ = bruteforce2(board, [], scoresofar + stackscore, stacksleft - 1, depth+1)
             return s, stack, board
     else:
+        # pass it back up the chain
         return (wins, winstack, winboard)
 
 def bruteforce(board, stack=[]):
@@ -395,7 +396,7 @@ def getboard_clrmd():
                 return None
     return b
 
-def clickat(xp, yp, sleepamt=0.5, midsleep=0.03):
+def clickat(xp, yp, sleepamt=0.42, midsleep=0.03):
     win32api.SetCursorPos((xp, yp))
     time.sleep(midsleep)
     win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, xp, yp)
@@ -409,9 +410,9 @@ def clicknextstack(rect):
     w = rect[2] - rect[0]
     h = rect[3] - rect[1]
     x = int(w * 0.317)
-    n = 21
+    n = 18
     start = 0.48
-    end = 0.81
+    end = 0.84
     step = (end - start) / n
     for i in range(n):
         clickat(rect[0] + x, rect[1] + int(h * (start + (step * i))), 0.01, 0.01)
