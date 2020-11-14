@@ -29,9 +29,9 @@ namespace dumpcards
                 using ClrRuntime runtime = clr.CreateRuntime();
                 ClrHeap heap = runtime.Heap;
 
-                var yset = new SortedSet<uint>();
-                var xset = new SortedSet<uint>();
-                var cardList = new List<(uint, uint, uint)>();
+                var yset = new SortedSet<int>();
+                var xset = new SortedSet<int>();
+                var cardList = new List<(uint, int, int)>();
 
                 foreach (ClrObject obj in heap.EnumerateObjects())
                 {
@@ -54,7 +54,6 @@ namespace dumpcards
                      * UpLink = +0x30
                      * DownLink = +0x40
                      */
-                    //TODO detect which cards are in play, and which are left over from previous game but not gc'd yet?
 
                     IntPtr numbytes = (IntPtr)0;
                     ulong sz = obj.Size;
@@ -66,8 +65,16 @@ namespace dumpcards
                     ReadProcessMemory(ph, (IntPtr)obj.Address, buf, (int)obj.Size, out numbytes);
                     uint suit = BitConverter.ToUInt32(buf, 0xc);
                     uint card = BitConverter.ToUInt32(buf, 0x10);
-                    uint somex = BitConverter.ToUInt32(buf, 0x28);
-                    uint somey = BitConverter.ToUInt32(buf, 0x2c);
+                    int somex = BitConverter.ToInt32(buf, 0x28);
+                    int somey = BitConverter.ToInt32(buf, 0x2c);
+
+                    if (somex < 0 || somey < 0)
+                    {
+                        // card not in play?
+                        continue;
+                    }
+
+                    // TODO walk the linked list to make sure it leads back to a 0 card in the same x position?
 
                     if (card != 0)
                     {

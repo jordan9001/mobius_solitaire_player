@@ -187,13 +187,13 @@ def getcardpos(rect, x, y):
     l, t, r, b = rect
     w = r-l
     h = b-t
-    left = int(w*0.439)
+    left = w*0.439
     xstep = w * 0.142
-    top = int(h*0.1)
-    ystep = h * 0.049
+    top = h*0.1
+    ystep = h * 0.0475
 
-    xp = l + left + int(xstep * x)
-    yp = t + top + int(ystep * y)
+    xp = int(l + left + xstep * x)
+    yp = int(t + top + ystep * y)
 
     return (xp, yp)
 
@@ -330,7 +330,6 @@ def getboard_clrmd():
 
     for l in p.stdout.strip().split('\n'):
         ll = l.split()
-        print(ll)
         c = cards[int(ll[0]) - 1]
         card = getcard(c)
         x = int(ll[1])
@@ -347,28 +346,34 @@ def getboard_clrmd():
 import win32api
 import win32con
 import time
-def clickat(xp, yp, sleepamt=0.5):
+def clickat(xp, yp, sleepamt=0.5, midsleep=0.03):
     win32api.SetCursorPos((xp, yp))
+    time.sleep(midsleep)
     win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, xp, yp)
+    time.sleep(midsleep)
     win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, xp, yp)
     time.sleep(sleepamt)
 
 def clicknextstack(rect):
-    raise NotImplementedError("Need to find button, it moves")
     # could just click a bunch in the whole column?
     # could track last card we sent to stack, and go to it's location?
     w = rect[2] - rect[0]
     h = rect[3] - rect[1]
     x = int(w * 0.317)
-    y = int(h * 0.74)
-    clickat(rect[0] + x, rect[1] + y)
+    n = 21
+    start = 0.48
+    end = 0.81
+    step = (end - start) / n
+    for i in range(n):
+        clickat(rect[0] + x, rect[1] + int(h * (start + (step * i))), 0.01, 0.01)
+
 
 def playstack(stack, rect):
+    clickat(rect[0] + 6, rect[1] + 6)
     for c in stack:
         x, y = c[3]
         xp, yp = getcardpos(rect, x, y)
-        print(f"DEBUG: going to try to click {c[0]} at {x},{y} ({xp},{yp})")
-        input("DEBUG: hit Enter to do it")
+        print(f"DEBUG: trying to click {c[0]} at {x},{y} ({xp},{yp})")
         clickat(xp, yp)
 
 def playone():
@@ -377,7 +382,6 @@ def playone():
         print("Failed to get program bounds")
         return False
     #focus window
-    clickat(rect[0] + 6, rect[1] + 6)
     board = getboard_clrmd()
     if board is None:
         print("Failed while getting board")
@@ -387,11 +391,11 @@ def playone():
 
     while True:
         _, winstack, nextboard = bruteforce(board, stack)
-        printstate(nextboard, winstack)
-        playstack([x[3] for x in winstack], rect)
-        clicknextstack(rect)
         if nextboard == board:
             break
+        printstate(nextboard, winstack)
+        playstack(winstack, rect)
+        clicknextstack(rect)
         board = nextboard
         stack = []
     return True
