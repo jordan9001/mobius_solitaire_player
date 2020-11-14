@@ -128,7 +128,7 @@ def bruteforce2(board, stack=[], scoresofar=0, stacksleft=1, depth=0):
             s, _, _ = bruteforce2(board, [], scoresofar + stackscore, stacksleft - 1, depth+1)
             return s, stack, board
     else:
-        return (wins + scoresofar, winstack, winboard)
+        return (wins, winstack, winboard)
 
 def bruteforce(board, stack=[]):
     # just brute force for 1 stack maximum score
